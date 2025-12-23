@@ -1,0 +1,14 @@
+{
+  "name": "sahayata-protocol-root",
+  "version": "1.0.0",
+  "description": "Disaster Relief Stablecoin System for EIBS 2.0",
+  "main": "index.js",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.4"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.1",
+    "dotenv": "^16.3.1"
+  }
+}
