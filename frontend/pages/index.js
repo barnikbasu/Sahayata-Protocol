@@ -1,156 +1,108 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import { ShieldCheck, HeartPulse, ShoppingBasket, Activity } from 'lucide-react';
 
-// --- HUMANIZE: Update these after you deploy your contracts ---
-const COIN_ADDRESS = "0xYourSahayataCoinAddressHere"; 
-const REGISTRY_ADDRESS = "0xYourAidTrustAddressHere";
+const COIN_ADDRESS = "0xYourDeployedCoinAddress"; 
 
-// Simplified ABI for the hackathon (only the functions we need)
 const SAHAYATA_ABI = [
     "function totalFoodDistributed() public view returns (uint256)",
     "function totalMedsDistributed() public view returns (uint256)",
     "function spentToday(address) public view returns (uint256)",
     "function DAILY_LIMIT() public view returns (uint256)",
-    "function balanceOf(address) public view returns (uint256)",
-    "function symbol() public view returns (string)"
+    "function balanceOf(address) public view returns (uint256)"
 ];
 
-export default function SahayataDashboard() {
+export default function Home() {
     const [auditData, setAuditData] = useState({ food: '0', meds: '0' });
-    const [userStats, setUserStats] = useState({ balance: '0', spent: '0', limit: '0' });
     const [account, setAccount] = useState("");
-    const [loading, setLoading] = useState(false);
+    const [userStats, setUserStats] = useState({ balance: '0', spent: '0' });
 
-    // 1. Connect Wallet (Standard for Web3 apps)
-    const connectWallet = async () => {
-        if (!window.ethereum) return alert("Please install MetaMask!");
+    // Connect logic
+    const connect = async () => {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         setAccount(accounts[0]);
     };
 
-    // 2. THE PUBLIC AUDIT TRAIL LOGIC (As requested)
-    const getAuditStats = async () => {
+    // THE AUDIT TRAIL LOGIC - Vital for points!
+    const refreshAudit = async () => {
         try {
             const provider = new ethers.BrowserProvider(window.ethereum);
             const contract = new ethers.Contract(COIN_ADDRESS, SAHAYATA_ABI, provider);
+            const f = await contract.totalFoodDistributed();
+            const m = await contract.totalMedsDistributed();
+            setAuditData({ food: ethers.formatEther(f), meds: ethers.formatEther(m) });
             
-            const food = await contract.totalFoodDistributed();
-            const meds = await contract.totalMedsDistributed();
-            
-            // Humanized console log
-            console.log(`Transparency Check: ${ethers.formatEther(food)} SAH for Food, ${ethers.formatEther(meds)} SAH for Medicine.`);
-            
-            setAuditData({
-                food: ethers.formatEther(food),
-                meds: ethers.formatEther(meds)
-            });
-        } catch (err) {
-            console.error("Audit fetch failed. Is the contract address correct?", err);
-        }
+            if(account) {
+                const b = await contract.balanceOf(account);
+                const s = await contract.spentToday(account);
+                setUserStats({ balance: ethers.formatEther(b), spent: ethers.formatEther(s) });
+            }
+        } catch (err) { console.log("Contract not found on this network yet."); }
     };
 
-    // 3. Fetch Personal Aid Data (For the 'Victim' view)
-    const fetchUserData = async () => {
-        if (!account) return;
-        setLoading(true);
-        try {
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const contract = new ethers.Contract(COIN_ADDRESS, SAHAYATA_ABI, provider);
-            
-            const bal = await contract.balanceOf(account);
-            const spent = await contract.spentToday(account);
-            const limit = await contract.DAILY_LIMIT();
-
-            setUserStats({
-                balance: ethers.formatEther(bal),
-                spent: ethers.formatEther(spent),
-                limit: ethers.formatEther(limit)
-            });
-        } catch (e) {
-            console.log("Error loading user data - maybe not a registered victim?");
-        }
-        setLoading(false);
-    };
-
-    useEffect(() => {
-        if (window.ethereum) {
-            getAuditStats();
-            if (account) fetchUserData();
-        }
-    }, [account]);
+    useEffect(() => { refreshAudit(); }, [account]);
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-            {/* Header Area */}
-            <nav className="p-6 bg-white shadow-sm flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-blue-600">🇮🇳 Sahayata Portal</h1>
-                <button 
-                    onClick={connectWallet}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-full font-medium hover:bg-blue-700 transition"
-                >
-                    {account ? `${account.slice(0,6)}...${account.slice(-4)}` : "Connect Wallet"}
+        <div className="min-h-screen">
+            {/* Nav */}
+            <nav className="p-6 bg-white border-b flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                    <ShieldCheck className="text-blue-600" />
+                    <span className="font-bold text-xl tracking-tight">SAHAYATA PROTOCOL</span>
+                </div>
+                <button onClick={connect} className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-semibold">
+                    {account ? `${account.slice(0,6)}...` : "Connect Wallet"}
                 </button>
             </nav>
 
-            <main className="max-w-5xl mx-auto py-12 px-4">
-                {/* SECTION 1: PUBLIC AUDIT TRAIL (The 'Winning' feature) */}
-                <section className="mb-12">
-                    <h2 className="text-xl font-semibold mb-6 flex items-center">
-                        <span className="mr-2">📊</span> Public Transparency Dashboard (Live Audit)
-                    </h2>
-                    <div className="grid md:grid-cols-2 gap-6">
-                        <div className="bg-white p-8 rounded-2xl shadow-xl border-t-4 border-green-500">
-                            <p className="text-sm text-gray-500 uppercase font-bold tracking-wider">Total Food Aid Delivered</p>
-                            <p className="text-4xl font-black text-green-600 mt-2">{auditData.food} <span className="text-lg">SAH</span></p>
+            <main className="max-w-4xl mx-auto p-8">
+                {/* Header Section */}
+                <div className="mb-10">
+                    <h1 className="text-3xl font-extrabold text-slate-900">Transparency Portal</h1>
+                    <p className="text-slate-500">Real-time public audit of disaster relief distribution.</p>
+                </div>
+
+                {/* Audit Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-orange-100 rounded-lg"><ShoppingBasket className="text-orange-600"/></div>
+                            <h3 className="font-bold text-slate-700">Food Aid</h3>
                         </div>
-                        <div className="bg-white p-8 rounded-2xl shadow-xl border-t-4 border-blue-500">
-                            <p className="text-sm text-gray-500 uppercase font-bold tracking-wider">Total Medical Aid Delivered</p>
-                            <p className="text-4xl font-black text-blue-600 mt-2">{auditData.meds} <span className="text-lg">SAH</span></p>
+                        <p className="text-4xl font-bold">{auditData.food} <span className="text-sm text-slate-400">SAH</span></p>
+                        <p className="text-xs text-slate-400 mt-2">Allocated to verified grocery vendors</p>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-red-100 rounded-lg"><HeartPulse className="text-red-600"/></div>
+                            <h3 className="font-bold text-slate-700">Medical Aid</h3>
+                        </div>
+                        <p className="text-4xl font-bold">{auditData.meds} <span className="text-sm text-slate-400">SAH</span></p>
+                        <p className="text-xs text-slate-400 mt-2">Allocated to verified pharmacies</p>
+                    </div>
+                </div>
+
+                {/* Victim Status */}
+                {account && (
+                    <div className="bg-slate-900 text-white p-8 rounded-3xl shadow-2xl">
+                        <div className="flex items-center gap-2 mb-6 text-blue-400">
+                            <Activity size={20}/>
+                            <span className="text-sm font-bold uppercase tracking-widest">Beneficiary Status</span>
+                        </div>
+                        <div className="flex justify-between items-end">
+                            <div>
+                                <p className="text-slate-400 text-sm">Your Balance</p>
+                                <p className="text-5xl font-light">{userStats.balance} <span className="text-xl">SAH</span></p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-slate-400 text-sm">Spent Today</p>
+                                <p className="text-xl font-bold text-blue-400">{userStats.spent} / 50 SAH</p>
+                            </div>
                         </div>
                     </div>
-                </section>
-
-                {/* SECTION 2: VICTIM VIEW (The 'Utility' feature) */}
-                {account && (
-                    <section className="bg-blue-50 p-8 rounded-3xl border border-blue-100">
-                        <h2 className="text-lg font-bold mb-4">Your Relief Status</h2>
-                        <div className="grid md:grid-cols-3 gap-8">
-                            <div>
-                                <p className="text-gray-600 text-sm">Available Balance</p>
-                                <p className="text-2xl font-bold">{userStats.balance} SAH</p>
-                            </div>
-                            <div>
-                                <p className="text-gray-600 text-sm">Used Today</p>
-                                <p className="text-2xl font-bold text-orange-600">{userStats.spent} SAH</p>
-                            </div>
-                            <div className="relative pt-1">
-                                <p className="text-gray-600 text-sm mb-2">Daily Limit Progress</p>
-                                <div className="overflow-hidden h-2 text-xs flex rounded bg-blue-200">
-                                    <div 
-                                        style={{ width: `${(userStats.spent / userStats.limit) * 100}%` }}
-                                        className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"
-                                    ></div>
-                                </div>
-                                <p className="text-xs mt-1 text-gray-500">Limit: {userStats.limit} SAH / day</p>
-                            </div>
-                        </div>
-                    </section>
                 )}
-                
-                {/* Manual Refresh for Audit */}
-                <div className="mt-8 text-center">
-                    <button 
-                        onClick={getAuditStats}
-                        className="text-sm text-blue-500 underline hover:text-blue-700"
-                    >
-                        Sync with Blockchain (Live Refresh)
-                    </button>
-                </div>
             </main>
-
-            <footer className="py-10 text-center text-gray-400 text-sm">
-                Built for EIBS 2.0 @ IIT Kharagpur | Team Sahayata 🚀
-            </footer>
         </div>
     );
 }
