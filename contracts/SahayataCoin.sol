@@ -18,10 +18,20 @@ contract SahayataCoin is ERC20 {
 
     constructor(address _reg) ERC20("Sahayata Token", "SAH") {
         trustRegistry = AidTrust(_reg);
+        Ownable(msg.sender) // Initialize ownership
+        {
+        trustRegistry = AidTrust(_reg);
+           }
     }
 
     // OVERRIDING THE UPDATE FUNCTION (This is the "Brain" of the system)
     function _update(address from, address to, uint256 amount) internal override {
+
+        // 1. Allow Minting (NGO sending to Victim) without checks
+        if (from == address(0)) {
+            super._update(from, to, amount);
+            return;
+        }
         // Only check rules if the 'from' address is a registered victim
         if (trustRegistry.isVictim(from)) {
             uint8 cat = trustRegistry.vendorType(to);
