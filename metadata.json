@@ -1,0 +1,6 @@
+{
+  "name": "Sahayata Protocol",
+  "description": "A disaster relief protocol for transparent, verifiable, and restricted aid distribution.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
